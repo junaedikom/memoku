@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memo Notepad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar untuk tampilan yang lebih rapi */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 h-screen w-full overflow-hidden flex">
+
+    <!-- 1. LOADING SCREEN -->
+    <div id="loading-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-50">
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-500 font-medium">Memuat aplikasi...</p>
+    </div>
+
+    <!-- 2. LOGIN SCREEN -->
+    <div id="login-screen" class="hidden fixed inset-0 z-40 flex items-center justify-center bg-gray-100 p-4">
+        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div class="flex justify-center mb-6">
+                <div class="bg-blue-100 p-4 rounded-full text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                </div>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">MemoKu</h1>
+            <p class="text-gray-500 mb-8">Simpan semua ide dan catatan penting Anda dengan aman di awan.</p>
+            
+            <div id="auth-error" class="hidden mb-4 p-3 bg-red-100 text-red-600 rounded-lg text-sm"></div>
+
+            <button id="login-btn" class="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all font-medium shadow-sm">
+                <svg class="w-5 h-5 mr-3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Lanjutkan dengan Akun Google
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. MAIN APP SCREEN -->
+    <div id="main-screen" class="hidden flex h-full w-full bg-white">
+        
+        <!-- SIDEBAR -->
+        <div id="sidebar" class="flex w-full md:w-80 lg:w-96 flex-col border-r border-gray-200 bg-gray-50 h-full">
+            <!-- Header Sidebar -->
+            <div class="p-4 bg-white border-b border-gray-200">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2 text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                        <h2 class="text-xl font-bold text-gray-800">MemoKu</h2>
+                    </div>
+                    <button id="logout-btn" class="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Keluar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    </button>
+                </div>
+                
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="search-input" placeholder="Cari catatan..." class="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl text-sm transition-all outline-none" />
+                </div>
+            </div>
+
+            <!-- Memo List -->
+            <div id="memo-list" class="flex-1 overflow-y-auto divide-y divide-gray-100">
+                <!-- Daftar catatan akan dirender di sini via JS -->
+            </div>
+
+            <!-- Tambah Tombol -->
+            <div class="p-4 bg-white border-t border-gray-200">
+                <button id="add-memo-btn" class="w-full flex items-center justify-center py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md shadow-blue-200 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" class="mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Catatan Baru
+                </button>
+            </div>
+        </div>
+
+        <!-- EDITOR AREA -->
+        <div id="editor-area" class="hidden md:flex flex-1 flex-col bg-white h-full relative">
+            
+            <!-- Empty State -->
+            <div id="empty-state" class="flex flex-col items-center justify-center h-full text-center p-8 bg-gray-50/50 w-full">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-4 text-blue-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-700 mb-2">Pilih atau Buat Catatan</h2>
+                <p class="text-gray-500">Pilih catatan dari menu di sebelah kiri untuk mulai membaca atau mengedit.</p>
+            </div>
+
+            <!-- Active Editor -->
+            <div id="active-editor" class="hidden flex-col h-full w-full max-w-4xl mx-auto shadow-sm">
+                <!-- Toolbar Editor -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-100 bg-white">
+                    <div class="flex items-center">
+                        <button id="back-btn" class="md:hidden p-2 mr-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <span id="last-updated-text" class="text-sm text-gray-400 hidden sm:inline-block">Terakhir diubah: -</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <button id="delete-btn" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center" title="Hapus Catatan">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                        </button>
+                        <button id="save-btn" class="flex items-center px-4 py-2 rounded-lg font-medium transition-all bg-blue-50 text-blue-700 hover:bg-blue-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            <span id="save-btn-text">Simpan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col">
+                    <input type="text" id="memo-title" placeholder="Judul Catatan" class="w-full text-3xl md:text-4xl font-bold text-gray-900 border-none outline-none bg-transparent placeholder-gray-300 mb-6 shrink-0" />
+                    
+                    <textarea id="memo-content" placeholder="Mulai mengetik catatan Anda di sini..." class="w-full flex-1 min-h-[500px] text-lg text-gray-700 border-none outline-none resize-none bg-transparent placeholder-gray-300 leading-relaxed"></textarea>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL HAPUS -->
+    <div id="delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Hapus Catatan?</h3>
+            <p class="text-gray-500 mb-6">Apakah Anda yakin ingin menghapus catatan ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-delete-btn" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors">Batal</button>
+                <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium shadow-sm transition-colors">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIC FIREBASE & APP -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfigurasi Environment Platform
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        // Inisialisasi Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // State Aplikasi
+        let currentUser = null;
+        let memos = [];
+        let activeMemoId = null;
+        let unsubscribeSnapshot = null;
+        let searchQuery = '';
+
+        // DOM Elements
+        const elLoading = document.getElementById('loading-screen');
+        const elLogin = document.getElementById('login-screen');
+        const elMain = document.getElementById('main-screen');
+        
+        const btnLogin = document.getElementById('login-btn');
+        const btnLogout = document.getElementById('logout-btn');
+        const btnAddMemo = document.getElementById('add-memo-btn');
+        const btnBack = document.getElementById('back-btn');
+        const btnSave = document.getElementById('save-btn');
+        const btnDelete = document.getElementById('delete-btn');
+        
+        const elSidebar = document.getElementById('sidebar');
+        const elEditorArea = document.getElementById('editor-area');
+        const elEmptyState = document.getElementById('empty-state');
+        const elActiveEditor = document.getElementById('active-editor');
+        
+        const inputSearch = document.getElementById('search-input');
+        const listContainer = document.getElementById('memo-list');
+        const inputTitle = document.getElementById('memo-title');
+        const inputContent = document.getElementById('memo-content');
+        const textLastUpdated = document.getElementById('last-updated-text');
+        
+        const elDeleteModal = document.getElementById('delete-modal');
+        const btnCancelDelete = document.getElementById('cancel-delete-btn');
+        const btnConfirmDelete = document.getElementById('confirm-delete-btn');
+        const textSaveBtn = document.getElementById('save-btn-text');
+
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, (user) => {
+            elLoading.classList.add('hidden');
+            if (user) {
+                currentUser = user;
+                elLogin.classList.add('hidden');
+                elMain.classList.remove('hidden');
+                loadMemos();
+            } else {
+                currentUser = null;
+                elMain.classList.add('hidden');
+                elLogin.classList.remove('hidden');
+                if (unsubscribeSnapshot) {
+                    unsubscribeSnapshot();
+                    unsubscribeSnapshot = null;
+                }
+            }
+        });
+
+        btnLogin.addEventListener('click', async () => {
+            elLogin.classList.add('hidden');
+            elLoading.classList.remove('hidden');
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Login failed:", error);
+                document.getElementById('auth-error').textContent = 'Gagal masuk. Silakan coba lagi.';
+                document.getElementById('auth-error').classList.remove('hidden');
+                elLoading.classList.add('hidden');
+                elLogin.classList.remove('hidden');
+            }
+        });
+
+        btnLogout.addEventListener('click', () => signOut(auth));
+
+        // --- FIRESTORE DATA ---
+        function loadMemos() {
+            if (!currentUser) return;
+            const memosRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'memos');
+            
+            unsubscribeSnapshot = onSnapshot(memosRef, (snapshot) => {
+                memos = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                memos.sort((a, b) => b.updatedAt - a.updatedAt);
+                renderMemoList();
+                
+                // Update active editor if needed
+                if (activeMemoId) {
+                    const activeMemo = memos.find(m => m.id === activeMemoId);
+                    if (!activeMemo) {
+                        closeEditor(); // Memo dihapus dari tempat lain
+                    } else if (document.activeElement !== inputTitle && document.activeElement !== inputContent) {
+                        // Hanya update konten jika user tidak sedang mengetik
+                        openEditor(activeMemoId, false);
+                    }
+                }
+            }, (error) => {
+                console.error("Error fetching memos:", error);
+            });
+        }
+
+        // --- UI LOGIC ---
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const today = new Date();
+            if (date.toDateString() === today.toDateString()) {
+                return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            }
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        }
+
+        function renderMemoList() {
+            listContainer.innerHTML = '';
+            
+            const filteredMemos = memos.filter(memo => {
+                const searchLower = searchQuery.toLowerCase();
+                const titleLower = (memo.title || '').toLowerCase();
+                const contentLower = (memo.content || '').toLowerCase();
+                return titleLower.includes(searchLower) || contentLower.includes(searchLower);
+            });
+
+            if (filteredMemos.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-8 text-center h-full text-gray-500">
+                        <svg class="mb-3 text-gray-300" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>
+                        <p>${searchQuery ? 'Tidak ada hasil pencarian.' : 'Belum ada catatan.'}</p>
+                    </div>`;
+                return;
+            }
+
+            filteredMemos.forEach(memo => {
+                const div = document.createElement('div');
+                const isActive = activeMemoId === memo.id;
+                
+                div.className = `p-4 cursor-pointer hover:bg-gray-100 transition-colors ${
+                    isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'border-l-4 border-transparent'
+                }`;
+                
+                div.innerHTML = `
+                    <h3 class="font-semibold truncate mb-1 ${isActive ? 'text-blue-800' : 'text-gray-800'}">
+                        ${memo.title || 'Tanpa Judul'}
+                    </h3>
+                    <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">
+                        ${memo.content || '...'}
+                    </p>
+                    <div class="flex items-center mt-2 text-xs text-gray-400">
+                        <svg class="mr-1" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        ${formatTime(memo.updatedAt)}
+                    </div>
+                `;
+                
+                div.addEventListener('click', () => openEditor(memo.id, true));
+                listContainer.appendChild(div);
+            });
+        }
+
+        inputSearch.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderMemoList();
+        });
+
+        // --- CRUD OPERATIONS ---
+        btnAddMemo.addEventListener('click', async () => {
+            if (!currentUser) return;
+            const newMemo = {
+                title: '',
+                content: '',
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+            try {
+                const memosRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'memos');
+                const docRef = await addDoc(memosRef, newMemo);
+                openEditor(docRef.id, true);
+                searchQuery = '';
+                inputSearch.value = '';
+            } catch (error) {
+                console.error("Gagal membuat memo:", error);
+            }
+        });
+
+        async function handleSave() {
+            if (!activeMemoId || !currentUser) return;
+            
+            // UI Feedback
+            btnSave.classList.replace('bg-blue-50', 'bg-green-100');
+            btnSave.classList.replace('text-blue-700', 'text-green-700');
+            textSaveBtn.textContent = 'Tersimpan';
+            
+            try {
+                const memoRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'memos', activeMemoId);
+                await updateDoc(memoRef, {
+                    title: inputTitle.value,
+                    content: inputContent.value,
+                    updatedAt: Date.now()
+                });
+            } catch (error) {
+                console.error("Gagal menyimpan memo:", error);
+            }
+
+            // Restore UI after 1s
+            setTimeout(() => {
+                btnSave.classList.replace('bg-green-100', 'bg-blue-50');
+                btnSave.classList.replace('text-green-700', 'text-blue-700');
+                textSaveBtn.textContent = 'Simpan';
+            }, 1000);
+        }
+
+        btnSave.addEventListener('click', handleSave);
+
+        // Delete Logic
+        btnDelete.addEventListener('click', () => {
+            elDeleteModal.classList.remove('hidden');
+        });
+
+        btnCancelDelete.addEventListener('click', () => {
+            elDeleteModal.classList.add('hidden');
+        });
+
+        btnConfirmDelete.addEventListener('click', async () => {
+            if (!activeMemoId || !currentUser) return;
+            try {
+                const memoRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'memos', activeMemoId);
+                await deleteDoc(memoRef);
+                closeEditor();
+            } catch (error) {
+                console.error("Gagal menghapus memo:", error);
+            }
+            elDeleteModal.classList.add('hidden');
+        });
+
+        // --- VIEW NAVIGATION (MOBILE & DESKTOP) ---
+        function openEditor(id, setInputValues = true) {
+            activeMemoId = id;
+            const memo = memos.find(m => m.id === id);
+            
+            if (memo && setInputValues) {
+                inputTitle.value = memo.title || '';
+                inputContent.value = memo.content || '';
+                
+                const date = new Date(memo.updatedAt);
+                textLastUpdated.textContent = `Terakhir diubah: ${date.toLocaleDateString('id-ID', { 
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                })}`;
+            }
+
+            // Atur tampilan UI
+            elEmptyState.classList.add('hidden');
+            elActiveEditor.classList.remove('hidden');
+            elActiveEditor.classList.add('flex');
+            
+            // Responsive mobile: Sembunyikan sidebar, tampilkan editor
+            if (window.innerWidth < 768) {
+                elSidebar.classList.add('hidden');
+                elEditorArea.classList.remove('hidden');
+                elEditorArea.classList.add('flex');
+            }
+
+            renderMemoList(); // Update highlight di sidebar
+        }
+
+        function closeEditor() {
+            activeMemoId = null;
+            inputTitle.value = '';
+            inputContent.value = '';
+            
+            elEmptyState.classList.remove('hidden');
+            elActiveEditor.classList.add('hidden');
+            elActiveEditor.classList.remove('flex');
+            
+            // Responsive mobile: Tampilkan sidebar, sembunyikan editor
+            if (window.innerWidth < 768) {
+                elSidebar.classList.remove('hidden');
+                elEditorArea.classList.add('hidden');
+                elEditorArea.classList.remove('flex');
+            }
+
+            renderMemoList(); // Hapus highlight di sidebar
+        }
+
+        btnBack.addEventListener('click', closeEditor);
+
+        // Resize listener untuk mengembalikan sidebar jika layar diperbesar
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                elSidebar.classList.remove('hidden');
+                elEditorArea.classList.remove('hidden');
+                elEditorArea.classList.add('flex');
+            } else {
+                if (activeMemoId) {
+                    elSidebar.classList.add('hidden');
+                    elEditorArea.classList.remove('hidden');
+                } else {
+                    elSidebar.classList.remove('hidden');
+                    elEditorArea.classList.add('hidden');
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
